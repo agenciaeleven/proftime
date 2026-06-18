@@ -1,0 +1,34 @@
+{
+  "name": "Student",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Nome"
+    },
+    "class_name": {
+      "type": "string",
+      "title": "Turma"
+    },
+    "subject": {
+      "type": "string",
+      "title": "Disciplina"
+    },
+    "email": {
+      "type": "string",
+      "title": "E-mail"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es Gerais"
+    },
+    "avatar_color": {
+      "type": "string",
+      "title": "Cor do Avatar",
+      "default": "#3b82f6"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

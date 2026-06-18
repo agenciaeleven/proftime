@@ -1,0 +1,59 @@
+{
+  "name": "FinancialReminder",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Descri\u00e7\u00e3o"
+    },
+    "value": {
+      "type": "number",
+      "title": "Valor"
+    },
+    "due_date": {
+      "type": "string",
+      "title": "Vencimento",
+      "format": "date"
+    },
+    "type": {
+      "type": "string",
+      "title": "Tipo",
+      "enum": [
+        "boleto",
+        "conta_fixa",
+        "parcelamento",
+        "outro"
+      ],
+      "default": "boleto"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "pendente",
+        "pago",
+        "atrasado"
+      ],
+      "default": "pendente"
+    },
+    "boleto_url": {
+      "type": "string",
+      "title": "Arquivo do Boleto"
+    },
+    "recurrent": {
+      "type": "boolean",
+      "title": "Recorrente",
+      "default": false
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es"
+    }
+  },
+  "required": [
+    "name",
+    "value",
+    "due_date",
+    "type"
+  ]
+}

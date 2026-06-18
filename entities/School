@@ -1,0 +1,84 @@
+{
+  "name": "School",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Nome da Escola"
+    },
+    "type": {
+      "type": "string",
+      "title": "Tipo",
+      "enum": [
+        "publica",
+        "particular",
+        "tecnica",
+        "universidade",
+        "curso_livre"
+      ],
+      "default": "particular"
+    },
+    "city": {
+      "type": "string",
+      "title": "Cidade / Estado"
+    },
+    "description": {
+      "type": "string",
+      "title": "Descri\u00e7\u00e3o"
+    },
+    "subjects_needed": {
+      "type": "array",
+      "title": "Disciplinas Buscadas",
+      "items": {
+        "type": "string"
+      }
+    },
+    "levels": {
+      "type": "array",
+      "title": "N\u00edveis de Ensino",
+      "items": {
+        "type": "string"
+      }
+    },
+    "modality": {
+      "type": "string",
+      "title": "Modalidade",
+      "enum": [
+        "presencial",
+        "online",
+        "hibrido"
+      ],
+      "default": "presencial"
+    },
+    "contact_email": {
+      "type": "string",
+      "title": "E-mail de Contato"
+    },
+    "contact_phone": {
+      "type": "string",
+      "title": "Telefone"
+    },
+    "website": {
+      "type": "string",
+      "title": "Site"
+    },
+    "logo_color": {
+      "type": "string",
+      "title": "Cor do Logo",
+      "default": "#3b82f6"
+    },
+    "hiring": {
+      "type": "boolean",
+      "title": "Contratando",
+      "default": true
+    },
+    "notes": {
+      "type": "string",
+      "title": "Informa\u00e7\u00f5es Adicionais"
+    }
+  },
+  "required": [
+    "name",
+    "city"
+  ]
+}

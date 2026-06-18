@@ -1,0 +1,45 @@
+{
+  "name": "StudentRecord",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string",
+      "title": "Aluno"
+    },
+    "date": {
+      "type": "string",
+      "title": "Data",
+      "format": "date"
+    },
+    "type": {
+      "type": "string",
+      "title": "Tipo",
+      "enum": [
+        "prova",
+        "atividade",
+        "comportamento",
+        "participacao",
+        "observacao"
+      ],
+      "default": "observacao"
+    },
+    "title": {
+      "type": "string",
+      "title": "T\u00edtulo"
+    },
+    "score": {
+      "type": "number",
+      "title": "Nota (0-10)"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Anota\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "student_id",
+    "date",
+    "type",
+    "title"
+  ]
+}

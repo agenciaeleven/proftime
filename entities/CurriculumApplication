@@ -1,0 +1,55 @@
+{
+  "name": "CurriculumApplication",
+  "type": "object",
+  "properties": {
+    "school_id": {
+      "type": "string",
+      "title": "Escola"
+    },
+    "school_name": {
+      "type": "string",
+      "title": "Nome da Escola"
+    },
+    "teacher_name": {
+      "type": "string",
+      "title": "Nome do Professor"
+    },
+    "teacher_email": {
+      "type": "string",
+      "title": "E-mail"
+    },
+    "teacher_phone": {
+      "type": "string",
+      "title": "Telefone/WhatsApp"
+    },
+    "subjects": {
+      "type": "string",
+      "title": "Disciplinas"
+    },
+    "message": {
+      "type": "string",
+      "title": "Mensagem de Apresenta\u00e7\u00e3o"
+    },
+    "cv_url": {
+      "type": "string",
+      "title": "Curr\u00edculo (arquivo)"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "enviado",
+        "visualizado",
+        "em_analise",
+        "aprovado",
+        "recusado"
+      ],
+      "default": "enviado"
+    }
+  },
+  "required": [
+    "school_id",
+    "teacher_name",
+    "teacher_email"
+  ]
+}

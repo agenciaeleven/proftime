@@ -1,0 +1,41 @@
+{
+  "name": "FinancialTransaction",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "title": "Tipo",
+      "enum": [
+        "entrada",
+        "saida"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "title": "Descri\u00e7\u00e3o"
+    },
+    "value": {
+      "type": "number",
+      "title": "Valor"
+    },
+    "date": {
+      "type": "string",
+      "title": "Data",
+      "format": "date"
+    },
+    "category": {
+      "type": "string",
+      "title": "Categoria"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es"
+    }
+  },
+  "required": [
+    "type",
+    "name",
+    "value",
+    "date"
+  ]
+}

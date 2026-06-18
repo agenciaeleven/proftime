@@ -1,0 +1,56 @@
+{
+  "name": "NeuralNode",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string",
+      "title": "T\u00edtulo"
+    },
+    "type": {
+      "type": "string",
+      "title": "Tipo",
+      "enum": [
+        "aula",
+        "tarefa",
+        "ideia",
+        "evento",
+        "conteudo",
+        "outro"
+      ],
+      "default": "ideia"
+    },
+    "category": {
+      "type": "string",
+      "title": "Categoria"
+    },
+    "tags": {
+      "type": "array",
+      "title": "Tags",
+      "items": {
+        "type": "string"
+      }
+    },
+    "x": {
+      "type": "number",
+      "title": "X"
+    },
+    "y": {
+      "type": "number",
+      "title": "Y"
+    },
+    "connections": {
+      "type": "array",
+      "title": "Conex\u00f5es",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notas"
+    }
+  },
+  "required": [
+    "label"
+  ]
+}

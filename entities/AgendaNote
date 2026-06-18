@@ -1,0 +1,26 @@
+{
+  "name": "AgendaNote",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "title": "Data",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es"
+    },
+    "file_url": {
+      "type": "string",
+      "title": "Arquivo"
+    },
+    "file_name": {
+      "type": "string",
+      "title": "Nome do Arquivo"
+    }
+  },
+  "required": [
+    "date"
+  ]
+}

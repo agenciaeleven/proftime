@@ -1,0 +1,23 @@
+{
+  "name": "OrgFolder",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Nome"
+    },
+    "project_id": {
+      "type": "string",
+      "title": "Projeto"
+    },
+    "color": {
+      "type": "string",
+      "title": "Cor",
+      "default": "#8b5cf6"
+    }
+  },
+  "required": [
+    "name",
+    "project_id"
+  ]
+}

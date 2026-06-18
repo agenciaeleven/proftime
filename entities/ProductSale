@@ -1,0 +1,51 @@
+{
+  "name": "ProductSale",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "title": "Produto"
+    },
+    "product_name": {
+      "type": "string",
+      "title": "Nome do Produto"
+    },
+    "student_name": {
+      "type": "string",
+      "title": "Nome do Aluno"
+    },
+    "student_email": {
+      "type": "string",
+      "title": "E-mail do Aluno"
+    },
+    "amount": {
+      "type": "number",
+      "title": "Valor (R$)"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "pago",
+        "pendente",
+        "cancelado",
+        "reembolsado"
+      ],
+      "default": "pago"
+    },
+    "payment_method": {
+      "type": "string",
+      "title": "Forma de Pagamento"
+    },
+    "date": {
+      "type": "string",
+      "title": "Data",
+      "format": "date"
+    }
+  },
+  "required": [
+    "product_id",
+    "product_name",
+    "amount"
+  ]
+}

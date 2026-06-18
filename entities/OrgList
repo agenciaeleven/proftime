@@ -1,0 +1,28 @@
+{
+  "name": "OrgList",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Nome"
+    },
+    "folder_id": {
+      "type": "string",
+      "title": "Pasta"
+    },
+    "project_id": {
+      "type": "string",
+      "title": "Projeto"
+    },
+    "color": {
+      "type": "string",
+      "title": "Cor",
+      "default": "#10b981"
+    }
+  },
+  "required": [
+    "name",
+    "folder_id",
+    "project_id"
+  ]
+}

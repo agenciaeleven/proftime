@@ -1,0 +1,29 @@
+{
+  "name": "AnswerKey",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Nome do Gabarito"
+    },
+    "answers": {
+      "type": "array",
+      "title": "Respostas",
+      "items": {
+        "type": "string"
+      }
+    },
+    "max_score": {
+      "type": "number",
+      "title": "Nota M\u00e1xima"
+    },
+    "subject": {
+      "type": "string",
+      "title": "Disciplina"
+    }
+  },
+  "required": [
+    "name",
+    "answers"
+  ]
+}

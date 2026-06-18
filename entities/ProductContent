@@ -1,0 +1,57 @@
+{
+  "name": "ProductContent",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "title": "Produto"
+    },
+    "module": {
+      "type": "string",
+      "title": "M\u00f3dulo"
+    },
+    "title": {
+      "type": "string",
+      "title": "T\u00edtulo"
+    },
+    "type": {
+      "type": "string",
+      "title": "Tipo",
+      "enum": [
+        "video",
+        "pdf",
+        "audio",
+        "exercicio",
+        "texto"
+      ],
+      "default": "video"
+    },
+    "file_url": {
+      "type": "string",
+      "title": "Arquivo"
+    },
+    "file_name": {
+      "type": "string",
+      "title": "Nome do Arquivo"
+    },
+    "description": {
+      "type": "string",
+      "title": "Descri\u00e7\u00e3o"
+    },
+    "free_preview": {
+      "type": "boolean",
+      "title": "Preview Gratuito",
+      "default": false
+    },
+    "order": {
+      "type": "number",
+      "title": "Ordem",
+      "default": 0
+    }
+  },
+  "required": [
+    "product_id",
+    "title",
+    "type"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "name": "Affiliation",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "title": "Produto"
+    },
+    "product_name": {
+      "type": "string",
+      "title": "Nome do Produto"
+    },
+    "affiliate_link": {
+      "type": "string",
+      "title": "Link de Afiliado"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "ativo",
+        "pendente"
+      ],
+      "default": "ativo"
+    },
+    "clicks": {
+      "type": "number",
+      "title": "Cliques",
+      "default": 0
+    },
+    "conversions": {
+      "type": "number",
+      "title": "Convers\u00f5es",
+      "default": 0
+    },
+    "commission_earned": {
+      "type": "number",
+      "title": "Comiss\u00e3o Gerada (R$)",
+      "default": 0
+    },
+    "commission_paid": {
+      "type": "number",
+      "title": "Comiss\u00e3o Paga (R$)",
+      "default": 0
+    }
+  },
+  "required": [
+    "product_id",
+    "product_name"
+  ]
+}

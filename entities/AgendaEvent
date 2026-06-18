@@ -1,0 +1,51 @@
+{
+  "name": "AgendaEvent",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "title": "Data",
+      "format": "date"
+    },
+    "title": {
+      "type": "string",
+      "title": "T\u00edtulo"
+    },
+    "type": {
+      "type": "string",
+      "title": "Tipo",
+      "enum": [
+        "aula",
+        "reuniao",
+        "plantao",
+        "evento",
+        "outro"
+      ],
+      "default": "aula"
+    },
+    "class_name": {
+      "type": "string",
+      "title": "Turma"
+    },
+    "start_time": {
+      "type": "string",
+      "title": "In\u00edcio"
+    },
+    "end_time": {
+      "type": "string",
+      "title": "Fim"
+    },
+    "location": {
+      "type": "string",
+      "title": "Local/Sala"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es"
+    }
+  },
+  "required": [
+    "date",
+    "title"
+  ]
+}

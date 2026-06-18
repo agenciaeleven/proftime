@@ -1,0 +1,38 @@
+{
+  "name": "StoreProfile",
+  "type": "object",
+  "properties": {
+    "display_name": {
+      "type": "string",
+      "title": "Nome de Exibi\u00e7\u00e3o"
+    },
+    "bio": {
+      "type": "string",
+      "title": "Bio"
+    },
+    "photo_url": {
+      "type": "string",
+      "title": "Foto"
+    },
+    "banner_url": {
+      "type": "string",
+      "title": "Banner"
+    },
+    "theme_color": {
+      "type": "string",
+      "title": "Cor do Tema",
+      "default": "#3b82f6"
+    },
+    "featured_product_id": {
+      "type": "string",
+      "title": "Produto em Destaque"
+    },
+    "slug": {
+      "type": "string",
+      "title": "URL da Loja"
+    }
+  },
+  "required": [
+    "display_name"
+  ]
+}

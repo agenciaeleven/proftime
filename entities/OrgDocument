@@ -1,0 +1,41 @@
+{
+  "name": "OrgDocument",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "T\u00edtulo"
+    },
+    "content": {
+      "type": "string",
+      "title": "Conte\u00fado"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "rascunho",
+        "finalizado"
+      ],
+      "default": "rascunho"
+    },
+    "project_id": {
+      "type": "string",
+      "title": "Projeto"
+    },
+    "folder_id": {
+      "type": "string",
+      "title": "Pasta"
+    },
+    "tags": {
+      "type": "array",
+      "title": "Tags",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "title"
+  ]
+}
