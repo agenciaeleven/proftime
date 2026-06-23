@@ -6,10 +6,18 @@ import type {
   UploadFileResult,
   User,
 } from '@/types'
+import {
+  createStaticEntityClient,
+  isStaticMode,
+  staticInvokeLLM,
+  staticUploadFile,
+  getStaticUser,
+  updateStaticUser,
+} from './staticStore'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-function createEntityClient<T extends EntityRecord = EntityRecord>(
+function createRemoteEntityClient<T extends EntityRecord = EntityRecord>(
   resource: string,
 ): EntityClient<T> {
   const base = `${API_URL}/entities/${resource}`
@@ -55,65 +63,54 @@ function createEntityClient<T extends EntityRecord = EntityRecord>(
   }
 }
 
-const noopEntity = createEntityClient('noop')
-
 const entitiesHandler: ProxyHandler<Record<string, EntityClient>> = {
   get: (_target, prop: string) => {
     if (prop === 'then') return undefined
+    if (isStaticMode) return createStaticEntityClient(prop)
     const resource = prop.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')
-    return createEntityClient(resource)
+    return createRemoteEntityClient(resource)
   },
 }
 
 async function invokeLLM(
   params: InvokeLLMParams,
 ): Promise<string | Record<string, unknown>> {
-  if (API_URL) {
-    const res = await fetch(`${API_URL}/ai/invoke`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    })
-    if (!res.ok) throw new Error(`AI request failed: ${res.status}`)
-    return res.json()
-  }
-  return `[Dev] Resposta simulada para: ${params.prompt.slice(0, 80)}...`
+  if (isStaticMode) return staticInvokeLLM(params)
+  const res = await fetch(`${API_URL}/ai/invoke`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  if (!res.ok) throw new Error(`AI request failed: ${res.status}`)
+  return res.json()
 }
 
 async function uploadFile(file: File): Promise<UploadFileResult> {
-  if (API_URL) {
-    const form = new FormData()
-    form.append('file', file)
-    const res = await fetch(`${API_URL}/files/upload`, {
-      method: 'POST',
-      credentials: 'include',
-      body: form,
-    })
-    if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
-    return res.json()
-  }
-  return { file_url: URL.createObjectURL(file) }
+  if (isStaticMode) return staticUploadFile(file)
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${API_URL}/files/upload`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  })
+  if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+  return res.json()
 }
 
 export const db: ApiClient = {
   auth: {
-    isAuthenticated: async () => {
-      try {
-        const user = await db.auth.me()
-        return !!user
-      } catch {
-        return false
-      }
-    },
+    isAuthenticated: async () => !!(await db.auth.me()),
     me: async (): Promise<User | null> => {
-      if (!API_URL) return null
+      if (isStaticMode) return getStaticUser()
       const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include' })
       if (res.status === 401) return null
       if (!res.ok) throw new Error('Failed to fetch user')
       return res.json()
     },
     updateMe: async (data) => {
+      if (isStaticMode) return updateStaticUser(data)
       const res = await fetch(`${API_URL}/auth/me`, {
         method: 'PATCH',
         credentials: 'include',
@@ -124,22 +121,17 @@ export const db: ApiClient = {
       return res.json()
     },
     logout: (redirectUrl?: string) => {
-      if (API_URL) {
+      if (!isStaticMode) {
         fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' })
       }
       if (redirectUrl) window.location.href = redirectUrl
     },
     redirectToLogin: (returnUrl?: string) => {
-      const loginUrl = API_URL
-        ? `${API_URL}/auth/sign-in?returnUrl=${encodeURIComponent(returnUrl || window.location.href)}`
-        : '/login'
-      window.location.href = loginUrl
+      if (isStaticMode) return
+      window.location.href = `${API_URL}/auth/sign-in?returnUrl=${encodeURIComponent(returnUrl || window.location.href)}`
     },
   },
-  entities: new Proxy(
-    { noop: noopEntity },
-    entitiesHandler,
-  ) as ApiClient['entities'],
+  entities: new Proxy({}, entitiesHandler) as ApiClient['entities'],
   integrations: {
     Core: {
       InvokeLLM: invokeLLM,
@@ -148,5 +140,6 @@ export const db: ApiClient = {
   },
 }
 
+export { isStaticMode }
 export const api = db
 export default db

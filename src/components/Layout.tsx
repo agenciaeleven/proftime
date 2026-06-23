@@ -1,5 +1,3 @@
-import { db } from '@/api/client';
-
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import TermsOfUseModal from "./TermsOfUseModal";
@@ -53,7 +51,28 @@ const navGroups = [
 
 const navItems = navGroups.flatMap(g => g.items);
 
-const LOGO_URL = "https://media.db.com/images/public/69d06d42f58dec4a70adf928/b673fe82a_Designsemnome88.png";
+const LOGO_SRC = "/logo.png";
+const LOGO_SRC_2X = "/logo@2x.png";
+
+function AppLogo({ collapsed = false, compact = false }: { collapsed?: boolean; compact?: boolean }) {
+  return (
+    <img
+      src={LOGO_SRC}
+      srcSet={`${LOGO_SRC} 1x, ${LOGO_SRC_2X} 2x`}
+      alt="ProfTime"
+      width={157}
+      height={76}
+      decoding="async"
+      className={cn(
+        "object-contain select-none",
+        collapsed && "h-11 w-11 object-left object-cover",
+        !collapsed && compact && "h-10 w-auto max-w-[140px]",
+        !collapsed && !compact && "h-14 w-auto max-w-[200px]"
+      )}
+      style={{ imageRendering: "auto" }}
+    />
+  );
+}
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -102,24 +121,18 @@ export default function Layout() {
           style={{ background: "hsl(var(--sidebar-background))" }}>
           
           {/* Logo */}
-          <div className="px-1 opacity-100 rounded-none flex items-center justify-center h-24 border-b border-sidebar-border shrink-0 overflow-hidden">
+          <div className="px-4 flex items-center justify-center min-h-[5.5rem] border-b border-sidebar-border shrink-0">
             {collapsed ? (
-            /* Icon-only when collapsed */
-            <img
-              src={LOGO_URL}
-              alt="ProfTime"
-              className="h-9 w-9 object-contain"
-              style={{ objectPosition: "left center" }} />) : (
-
-            /* Full logo PNG */
-            <motion.img
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.2 }} src="https://media.db.com/images/public/69d06d42f58dec4a70adf928/5c8e672f6_Design_sem_nome__92_.png"
-
-              alt="ProfTime" className="h-10 w-auto max-w-full object-contain" />)
-
-            }
+              <AppLogo collapsed />
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                <AppLogo />
+              </motion.div>
+            )}
           </div>
 
           {/* Nav */}
@@ -174,11 +187,16 @@ export default function Layout() {
           {/* Topbar */}
           <header className="h-16 shrink-0 flex items-center px-6 gap-4 border-b border-border bg-card/40 backdrop-blur-sm relative z-50">
             <button
-              className="md:hidden text-muted-foreground hover:text-foreground"
-              onClick={() => setMobileOpen(true)}>
-              
+              className="md:hidden text-muted-foreground hover:text-foreground shrink-0"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Abrir menu"
+            >
               <Menu className="w-5 h-5" />
             </button>
+
+            <Link to="/" className="md:hidden shrink-0">
+              <AppLogo compact />
+            </Link>
 
             <div className="hidden md:block">
               <h2 className="text-sm font-semibold text-foreground">{currentPage}</h2>
@@ -218,8 +236,8 @@ export default function Layout() {
                   P
                 </div>
                 <div className="hidden sm:block">
-                  <p className="text-xs font-medium text-foreground">Professor</p>
-                  <p className="text-xs text-muted-foreground">Admin</p>
+                  <p className="text-xs font-medium text-foreground">Prof. Ana</p>
+                  <p className="text-xs text-muted-foreground">Demo</p>
                 </div>
                 </button>
                 <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />

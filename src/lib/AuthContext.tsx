@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, type ReactNode } from 'react'
-import { db } from '@/api/client'
+import { db, isStaticMode } from '@/api/client'
 import type { AppPublicSettings, AuthContextValue, AuthError, User } from '@/types'
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -21,6 +21,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [])
 
   const checkAppState = async () => {
+    if (isStaticMode) {
+      const currentUser = await db.auth.me()
+      setUser(currentUser)
+      setIsAuthenticated(true)
+      setIsLoadingAuth(false)
+      setIsLoadingPublicSettings(false)
+      return
+    }
     try {
       setAuthError(null)
       setIsLoadingAuth(true)
