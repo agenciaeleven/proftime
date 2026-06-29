@@ -19,9 +19,9 @@ export default function HubDashboard({ products, sales, profile, onCreateProduct
   const topProducts = [...products].sort((a, b) => (b.total_revenue || 0) - (a.total_revenue || 0)).slice(0, 5);
 
   const metrics = [
-    { label: "Faturamento Total", value: `R$ ${totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: DollarSign, color: "#10b981", bg: "#10b98120", change: "+23%" },
-    { label: "Este Mês", value: `R$ ${monthRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: "#3b82f6", bg: "#3b82f620", change: "+18%" },
-    { label: "Alunos/Clientes", value: uniqueStudents, icon: Users, color: "#a78bfa", bg: "#a78bfa20", change: `+${paid.length}` },
+    { label: "Faturamento Total", value: `R$ ${totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: DollarSign, color: "#10b981", bg: "#10b98120", change: paid.length ? `${paid.length} vendas` : "—" },
+    { label: "Este Mês", value: `R$ ${monthRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: "#3b82f6", bg: "#3b82f620", change: monthSales.length ? `${monthSales.length} vendas` : "—" },
+    { label: "Alunos/Clientes", value: uniqueStudents, icon: Users, color: "#a78bfa", bg: "#a78bfa20", change: products.length ? `${products.length} produtos` : "—" },
     { label: "Produtos Ativos", value: activeProducts, icon: Package, color: "#f59e0b", bg: "#f59e0b20", change: `${products.length} total` },
   ];
 

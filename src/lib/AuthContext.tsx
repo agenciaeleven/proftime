@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, type ReactNode } from 'react'
-import { db, isStaticMode } from '@/api/client'
+import { db } from '@/api/client'
 import type { AppPublicSettings, AuthContextValue, AuthError, User } from '@/types'
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -21,26 +21,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [])
 
   const checkAppState = async () => {
-    if (isStaticMode) {
-      const currentUser = await db.auth.me()
-      setUser(currentUser)
-      setIsAuthenticated(true)
-      setIsLoadingAuth(false)
-      setIsLoadingPublicSettings(false)
-      return
-    }
     try {
       setAuthError(null)
-      setIsLoadingAuth(true)
-
       const currentUser = await db.auth.me()
-      if (currentUser) {
-        setUser(currentUser)
-        setIsAuthenticated(true)
-      } else {
-        setUser(null)
-        setIsAuthenticated(false)
-      }
+      setUser(currentUser)
+      setIsAuthenticated(!!currentUser)
     } catch (error) {
       console.error('Auth check failed:', error)
       setUser(null)
@@ -62,7 +47,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   const navigateToLogin = () => {
-    db.auth.redirectToLogin(window.location.href)
+    const returnUrl = `${window.location.pathname}${window.location.search}`
+    db.auth.redirectToLogin(returnUrl)
   }
 
   return (

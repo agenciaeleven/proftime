@@ -1,0 +1,26 @@
+{
+  "name": "proftime-api",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "build": "tsc",
+    "start": "node --env-file=.env dist/index.js",
+    "db:reset": "tsx --env-file=.env src/db/reset.ts",
+    "db:create-user": "tsx --env-file=.env src/db/create-user.ts"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@hono/node-server": "^1.14.0",
+    "hono": "^4.7.0",
+    "pdf-parse": "^2.4.5",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "@types/pg": "^8.20.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.2"
+  }
+}

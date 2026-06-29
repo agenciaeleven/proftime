@@ -13,39 +13,18 @@ import {
 } from "lucide-react";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
-const chartData = [
-  { day: "Seg", aulas: 3, provas: 8 },
-  { day: "Ter", aulas: 5, provas: 12 },
-  { day: "Qua", aulas: 4, provas: 6 },
-  { day: "Qui", aulas: 7, provas: 15 },
-  { day: "Sex", aulas: 6, provas: 10 },
-  { day: "Sáb", aulas: 2, provas: 4 },
-  { day: "Dom", aulas: 1, provas: 2 },
-];
+const WEEK_DAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const chartData = WEEK_DAYS.map((day) => ({ day, aulas: 0, provas: 0 }));
 
-const recentActivity = [
-  { icon: FileCheck, text: "Prova de Matemática corrigida", sub: "9º Ano A · 28 alunos", time: "há 12 min", color: "#34d399" },
-  { icon: BookOpen, text: "Plano de aula criado", sub: "Português · 7º Ano B", time: "há 1h", color: "#60a5fa" },
-  { icon: Bot, text: "IA gerou 3 atividades", sub: "Ciências · 6º Ano", time: "há 2h", color: "#a78bfa" },
-  { icon: Users, text: "Reunião pedagógica registrada", sub: "Escola Castro Alves", time: "ontem", color: "#fb923c" },
-  { icon: Star, text: "Slides de Física finalizados", sub: "2º Ano EM · 18 slides", time: "ontem", color: "#f472b6" },
-];
-
-const agenda = [
-  { time: "07:30", subject: "Matemática", class: "9º A", school: "E.E. Castro Alves", color: "#3b82f6" },
-  { time: "09:00", subject: "Física", class: "2º EM", school: "Instituto Federal", color: "#8b5cf6" },
-  { time: "11:00", subject: "Matemática", class: "8º B", school: "E.E. Castro Alves", color: "#3b82f6" },
-  { time: "14:30", subject: "Reforço", class: "ENEM", school: "Curso Preparatório", color: "#10b981" },
-];
-
+const recentActivity = [];
+const agenda = [];
 const goals = [
-  { label: "Aulas planejadas", done: 18, total: 24, color: "#3b82f6", bg: "from-blue-500/20 to-blue-500/5" },
-  { label: "Provas corrigidas", done: 142, total: 200, color: "#a78bfa", bg: "from-violet-500/20 to-violet-500/5" },
-  { label: "Slides gerados", done: 34, total: 48, color: "#34d399", bg: "from-emerald-500/20 to-emerald-500/5" },
+  { label: "Aulas planejadas", done: 0, total: 0, color: "#3b82f6", bg: "from-blue-500/20 to-blue-500/5" },
+  { label: "Provas corrigidas", done: 0, total: 0, color: "#a78bfa", bg: "from-violet-500/20 to-violet-500/5" },
+  { label: "Slides gerados", done: 0, total: 0, color: "#34d399", bg: "from-emerald-500/20 to-emerald-500/5" },
 ];
 
-const miniCalDots = [3, 7, 8, 10, 14, 15, 17, 21, 22, 28];
-const today = 7;
+const miniCalDots = [];
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
 function CustomTooltip({ active, payload, label }) {
@@ -108,6 +87,12 @@ export default function Dashboard() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   const firstName = user?.full_name ? user.full_name.split(" ")[0] : null;
+  const now = new Date();
+  const today = now.getDate();
+  const monthLabel = now.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const weekdayLabel = now.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const firstWeekday = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
 
   useEffect(() => {
     const t = setInterval(() => setTick(x => x + 1), 60000);
@@ -135,16 +120,14 @@ export default function Dashboard() {
               {/* Status pill */}
               <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-5" style={{ background: "#F1F5FF", border: "1px solid rgba(77,124,254,0.2)" }}>
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs text-[#4D7CFE] font-medium">IA Ativa · Semana letiva em andamento</span>
+                <span className="text-xs text-[#4D7CFE] font-medium">IA Ativa · Pronto para começar</span>
               </div>
 
               <h1 className="text-3xl lg:text-4xl font-bold text-[#1F1F1F] mb-3 tracking-tight">
                 {greeting}, Prof. {firstName || "Professor"}
               </h1>
               <p className="text-[#6E6E73] text-sm max-w-lg leading-relaxed">
-                Você tem <span className="text-[#1F1F1F] font-semibold">4 aulas hoje</span> e{" "}
-                <span className="text-[#1F1F1F] font-semibold">156 provas corrigidas</span> este mês.
-                Continue assim — você está acima da meta em <span className="text-emerald-600 font-semibold">+23%</span>.
+                Seu painel está zerado. Crie planos de aula, corrija provas e use a IA para ganhar tempo no dia a dia.
               </p>
 
               <div className="flex flex-wrap gap-3 mt-7">
@@ -173,9 +156,9 @@ export default function Dashboard() {
             {/* Stats strip */}
             <div className="flex flex-row lg:flex-col gap-3 shrink-0">
               {[
-                { label: "Aulas hoje", value: "4", icon: Flame, color: "#fb923c" },
-                { label: "Horas salvas", value: "18h", icon: Zap, color: "#059669" },
-                { label: "Tarefas abertas", value: "7", icon: CheckCircle2, color: "#4D7CFE" },
+                { label: "Aulas hoje", value: "0", icon: Flame, color: "#fb923c" },
+                { label: "Horas salvas", value: "0h", icon: Zap, color: "#059669" },
+                { label: "Tarefas abertas", value: "0", icon: CheckCircle2, color: "#4D7CFE" },
               ].map((s) => (
                 <div key={s.label}
                   className="flex items-center gap-3 bg-white border border-[#DDD9D3] rounded-2xl px-4 py-3 min-w-[160px] shadow-sm">
@@ -195,10 +178,10 @@ export default function Dashboard() {
         {/* ── ROW 1: Metrics ───────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { icon: BookOpen, label: "Aulas Criadas", value: "24", change: "+8 mês", accent: "#4D7CFE", chart: true },
-            { icon: FileCheck, label: "Provas Corrigidas", value: "156", change: "+12%", accent: "#a78bfa" },
-            { icon: Zap, label: "Horas Salvas", value: "18h", change: "+25%", accent: "#059669" },
-            { icon: BarChart2, label: "Slides Gerados", value: "48", change: "+15", accent: "#fb923c" },
+            { icon: BookOpen, label: "Aulas Criadas", value: "0", change: "—", accent: "#4D7CFE", chart: true },
+            { icon: FileCheck, label: "Provas Corrigidas", value: "0", change: "—", accent: "#a78bfa" },
+            { icon: Zap, label: "Horas Salvas", value: "0h", change: "—", accent: "#059669" },
+            { icon: BarChart2, label: "Slides Gerados", value: "0", change: "—", accent: "#fb923c" },
           ].map((m, i) => (
             <motion.div key={m.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: i * 0.07 }}>
               <MetricCard {...m} />
@@ -255,7 +238,12 @@ export default function Dashboard() {
               </button>
             </div>
             <div className="space-y-1 flex-1">
-              {recentActivity.map((item, i) => (
+              {recentActivity.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <Clock className="w-8 h-8 text-[#DDD9D3] mb-3" />
+                  <p className="text-xs text-[#A0A0A6]">Nenhuma atividade recente ainda.</p>
+                </div>
+              ) : recentActivity.map((item, i) => (
                 <motion.div key={i} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 + i * 0.06 }}
                   className="flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-[#FAFAF8] transition-colors group cursor-pointer">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: `${item.color}15` }}>
@@ -289,7 +277,7 @@ export default function Dashboard() {
             </div>
             <div className="space-y-5">
               {goals.map((g) => {
-                const pct = Math.round((g.done / g.total) * 100);
+                const pct = g.total ? Math.round((g.done / g.total) * 100) : 0;
                 return (
                   <div key={g.label}>
                     <div className="flex items-center justify-between mb-2">
@@ -321,7 +309,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="font-semibold text-[#1F1F1F] text-sm">Agenda de Hoje</h3>
-                <p className="text-xs text-[#A0A0A6] mt-0.5">Segunda, 07 de Abril</p>
+                <p className="text-xs text-[#A0A0A6] mt-0.5 capitalize">{weekdayLabel}</p>
               </div>
               <Link to="/agenda">
                 <button className="text-xs text-[#A0A0A6] hover:text-[#4D7CFE] transition-colors flex items-center gap-1">
@@ -332,7 +320,13 @@ export default function Dashboard() {
             <div className="relative pl-4">
               <div className="absolute left-0 top-2 bottom-2 w-px bg-gradient-to-b from-[#4D7CFE]/40 via-violet-400/20 to-transparent" />
               <div className="space-y-4">
-                {agenda.map((item, i) => (
+                {agenda.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar className="w-8 h-8 text-[#DDD9D3] mx-auto mb-3" />
+                    <p className="text-xs text-[#A0A0A6]">Nenhum compromisso para hoje.</p>
+                    <Link to="/agenda" className="text-xs text-[#4D7CFE] hover:underline mt-2 inline-block">Adicionar na agenda</Link>
+                  </div>
+                ) : agenda.map((item, i) => (
                   <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.45 + i * 0.07 }} className="relative group">
                     <div className="absolute -left-[18px] top-2 w-2 h-2 rounded-full border-2 border-current transition-all group-hover:scale-125"
                       style={{ color: item.color, background: item.color + "30" }} />
@@ -356,15 +350,15 @@ export default function Dashboard() {
             {/* Mini Calendar */}
             <div className="rounded-2xl border border-[#DDD9D3] p-5 flex-1 bg-white shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-[#1F1F1F] text-sm">Abril 2026</h3>
+                <h3 className="font-semibold text-[#1F1F1F] text-sm capitalize">{monthLabel}</h3>
                 <Calendar className="w-4 h-4 text-[#A0A0A6]" />
               </div>
               <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
                 {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
                   <span key={i} className="text-[10px] text-[#A0A0A6] font-medium py-1">{d}</span>
                 ))}
-                {[...Array(2)].map((_, i) => <div key={`e${i}`} />)}
-                {[...Array(30)].map((_, i) => {
+                {[...Array(firstWeekday)].map((_, i) => <div key={`e${i}`} />)}
+                {[...Array(daysInMonth)].map((_, i) => {
                   const day = i + 1;
                   const isToday = day === today;
                   const hasDot = miniCalDots.includes(day);

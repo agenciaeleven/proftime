@@ -8,78 +8,36 @@ import type {
 } from '@/types'
 import {
   createStaticEntityClient,
-  isStaticMode,
   staticInvokeLLM,
   staticUploadFile,
-  getStaticUser,
   updateStaticUser,
 } from './staticStore'
+import { authHeaders, clearAuthToken, setAuthToken } from './authToken'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-function createRemoteEntityClient<T extends EntityRecord = EntityRecord>(
-  resource: string,
-): EntityClient<T> {
-  const base = `${API_URL}/entities/${resource}`
+/** Backend Railway configurado (IA + arquivos + auth stub). */
+export const hasRemoteApi = !!API_URL
 
-  const request = async <R>(url: string, init?: RequestInit): Promise<R> => {
-    const res = await fetch(url, {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', ...init?.headers },
-      ...init,
-    })
-    if (!res.ok) {
-      const error = new Error(`Request failed: ${res.status}`) as Error & {
-        status?: number
-      }
-      error.status = res.status
-      throw error
-    }
-    if (res.status === 204) return undefined as R
-    return res.json() as Promise<R>
-  }
-
-  return {
-    list: (sort) => {
-      const params = sort ? `?sort=${encodeURIComponent(sort)}` : ''
-      return request<T[]>(`${base}${params}`)
-    },
-    filter: (query, sort, limit) => {
-      const params = new URLSearchParams()
-      if (query) params.set('q', JSON.stringify(query))
-      if (sort) params.set('sort', sort)
-      if (limit) params.set('limit', String(limit))
-      const qs = params.toString()
-      return request<T[]>(`${base}${qs ? `?${qs}` : ''}`)
-    },
-    get: (id) => request<T | null>(`${base}/${id}`),
-    create: (data) =>
-      request<T>(base, { method: 'POST', body: JSON.stringify(data) }),
-    update: (id, data) =>
-      request<T>(`${base}/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-    delete: (id) => request<void>(`${base}/${id}`, { method: 'DELETE' }),
-    bulkCreate: (data) =>
-      request<T[]>(`${base}/bulk`, { method: 'POST', body: JSON.stringify(data) }),
-  }
-}
+/** Modo 100% local (sem Railway). */
+export const isStaticMode = !hasRemoteApi
 
 const entitiesHandler: ProxyHandler<Record<string, EntityClient>> = {
   get: (_target, prop: string) => {
     if (prop === 'then') return undefined
-    if (isStaticMode) return createStaticEntityClient(prop)
-    const resource = prop.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')
-    return createRemoteEntityClient(resource)
+    return createStaticEntityClient(prop)
   },
 }
 
 async function invokeLLM(
   params: InvokeLLMParams,
 ): Promise<string | Record<string, unknown>> {
-  if (isStaticMode) return staticInvokeLLM(params)
+  if (!hasRemoteApi) return staticInvokeLLM(params)
+
   const res = await fetch(`${API_URL}/ai/invoke`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(params),
   })
   if (!res.ok) throw new Error(`AI request failed: ${res.status}`)
@@ -87,12 +45,14 @@ async function invokeLLM(
 }
 
 async function uploadFile(file: File): Promise<UploadFileResult> {
-  if (isStaticMode) return staticUploadFile(file)
+  if (!hasRemoteApi) return staticUploadFile(file)
+
   const form = new FormData()
   form.append('file', file)
   const res = await fetch(`${API_URL}/files/upload`, {
     method: 'POST',
     credentials: 'include',
+    headers: authHeaders(),
     body: form,
   })
   if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
@@ -102,33 +62,69 @@ async function uploadFile(file: File): Promise<UploadFileResult> {
 export const db: ApiClient = {
   auth: {
     isAuthenticated: async () => !!(await db.auth.me()),
+    login: async (email, password) => {
+      if (!hasRemoteApi) {
+        const { staticLogin } = await import('./staticStore')
+        return staticLogin(email, password)
+      }
+
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Falha no login')
+      }
+      if (data.token) setAuthToken(data.token)
+      return data.user as User
+    },
     me: async (): Promise<User | null> => {
-      if (isStaticMode) return getStaticUser()
-      const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include' })
+      if (!hasRemoteApi) {
+        const { getStaticSession } = await import('./staticStore')
+        return getStaticSession()
+      }
+      const res = await fetch(`${API_URL}/auth/me`, {
+        credentials: 'include',
+        headers: authHeaders(),
+      })
       if (res.status === 401) return null
       if (!res.ok) throw new Error('Failed to fetch user')
       return res.json()
     },
     updateMe: async (data) => {
-      if (isStaticMode) return updateStaticUser(data)
+      if (!hasRemoteApi) return updateStaticUser(data)
       const res = await fetch(`${API_URL}/auth/me`, {
         method: 'PATCH',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(data),
       })
       if (!res.ok) throw new Error('Failed to update user')
       return res.json()
     },
     logout: (redirectUrl?: string) => {
-      if (!isStaticMode) {
-        fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' })
+      if (hasRemoteApi) {
+        fetch(`${API_URL}/auth/logout`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: authHeaders(),
+        })
+        clearAuthToken()
+      } else {
+        void import('./staticStore').then(({ staticLogout }) => staticLogout())
       }
-      if (redirectUrl) window.location.href = redirectUrl
+      const target = redirectUrl?.includes('/login') ? redirectUrl : '/login'
+      window.location.href = target
     },
     redirectToLogin: (returnUrl?: string) => {
-      if (isStaticMode) return
-      window.location.href = `${API_URL}/auth/sign-in?returnUrl=${encodeURIComponent(returnUrl || window.location.href)}`
+      const path = returnUrl
+        ? `/login?return=${encodeURIComponent(returnUrl)}`
+        : '/login'
+      window.location.href = path
     },
   },
   entities: new Proxy({}, entitiesHandler) as ApiClient['entities'],
@@ -140,6 +136,5 @@ export const db: ApiClient = {
   },
 }
 
-export { isStaticMode }
 export const api = db
 export default db

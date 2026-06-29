@@ -1,5 +1,9 @@
 import { db } from '@/api/client'
-import { asText } from '@/lib/ai'
+import { asObject } from '@/lib/ai'
+import {
+  buildActivityGenerationRequest,
+  formatActivityResult,
+} from '@/lib/prompts/activity'
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,22 +29,30 @@ export default function ActivityGenerator() {
   const [editText, setEditText] = useState("");
 
   const handleGenerate = async () => {
-    if (!form.subject || !form.topic) { toast.error("Preencha disciplina e tema."); return; }
+    if (!form.subject || !form.topic.trim()) {
+      toast.error("Preencha disciplina e tema.");
+      return;
+    }
+
+    const quantity = Number(form.quantity);
+    if (!Number.isFinite(quantity) || quantity < 1 || quantity > 20) {
+      toast.error("Informe entre 1 e 20 questões.");
+      return;
+    }
+
     setStep("loading");
-    const typeLabel = TYPES.find(t => t.key === form.type)?.label;
-    const response = await db.integrations.Core.InvokeLLM({
-      prompt: `Crie ${form.quantity} questões de ${typeLabel} sobre "${form.topic}" para a disciplina de ${form.subject}, nível ${form.level}.
-Para múltipla escolha: inclua enunciado, 4 alternativas (A-D) e gabarito.
-Para V/F: inclua afirmação e gabarito.
-Para dissertativa: inclua enunciado e critérios de correção.
-Para prática: inclua descrição detalhada da atividade.
-Formate de forma clara e organizada. Seja didático e objetivo.`,
-      model: "gemini_3_flash"
-    });
-    const text = asText(response)
-    setResult(text)
-    setEditText(text)
-    setStep("result");
+    try {
+      const response = await db.integrations.Core.InvokeLLM(
+        buildActivityGenerationRequest({ ...form, topic: form.topic.trim() }),
+      );
+      const text = formatActivityResult(asObject(response));
+      setResult(text);
+      setEditText(text);
+      setStep("result");
+    } catch {
+      toast.error("Não foi possível gerar as atividades. Tente novamente.");
+      setStep("form");
+    }
   };
 
   const handleSave = () => { toast.success("Atividade salva!"); };
@@ -65,7 +77,7 @@ Formate de forma clara e organizada. Seja didático e objetivo.`,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-[#A0A0A6] uppercase tracking-wider mb-1.5 block">Disciplina</label>
-                    <Select onValueChange={v => setForm(f => ({ ...f, subject: v }))}>
+                    <Select value={form.subject} onValueChange={v => setForm(f => ({ ...f, subject: v }))}>
                       <SelectTrigger className="bg-[#FAFAF8] border-[#DDD9D3] rounded-xl text-[#1F1F1F]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                       <SelectContent className="bg-white border-[#DDD9D3] max-h-60">
                         {SUBJECTS.map(s => <SelectItem key={s} value={s} className="text-[#1F1F1F]">{s}</SelectItem>)}
@@ -74,7 +86,7 @@ Formate de forma clara e organizada. Seja didático e objetivo.`,
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-[#A0A0A6] uppercase tracking-wider mb-1.5 block">Nível</label>
-                    <Select defaultValue="Médio" onValueChange={v => setForm(f => ({ ...f, level: v }))}>
+                    <Select value={form.level} onValueChange={v => setForm(f => ({ ...f, level: v }))}>
                       <SelectTrigger className="bg-[#FAFAF8] border-[#DDD9D3] rounded-xl text-[#1F1F1F]"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-white border-[#DDD9D3]">
                         {LEVELS.map(l => <SelectItem key={l} value={l} className="text-[#1F1F1F]">{l}</SelectItem>)}

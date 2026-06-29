@@ -191,6 +191,8 @@ export interface InvokeLLMParams {
   add_context_from_internet?: boolean
   response_json_schema?: object
   file_urls?: string[]
+  /** Busca trechos relevantes na base de conhecimento (PDFs do professor). */
+  use_knowledge_base?: boolean
 }
 
 export interface UploadFileResult {
@@ -250,6 +252,7 @@ export interface EntityClient<T extends EntityRecord = EntityRecord> {
 export interface AuthModule {
   isAuthenticated: () => Promise<boolean>
   me: () => Promise<User | null>
+  login: (email: string, password: string) => Promise<User>
   updateMe: (data: Partial<User>) => Promise<User>
   logout: (redirectUrl?: string) => void
   redirectToLogin: (returnUrl?: string) => void

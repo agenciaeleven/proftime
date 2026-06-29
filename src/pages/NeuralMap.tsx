@@ -1,4 +1,5 @@
 import { db } from '@/api/client';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,8 +45,16 @@ function findBestConnection(newNode, allNodes) {
   return best;
 }
 
+function edgeControlOffset(a: string, b: string) {
+  const key = a < b ? `${a}-${b}` : `${b}-${a}`;
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash + key.charCodeAt(i) * (i + 1)) % 1000;
+  const sign = hash % 2 === 0 ? 1 : -1;
+  return { ox: sign * (18 + (hash % 28)), oy: -sign * (14 + (hash % 22)) };
+}
+
 // ── Node Detail Panel ──────────────────────────────────────────────────────
-function NodePanel({ node, nodes, onClose, onDelete, onUpdate, onConnect }) {
+function NodePanel({ node, nodes, onClose, onDelete, onUpdate, isMobile }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ label: node.label, type: node.type, category: node.category || "", tags: (node.tags || []).join(", "), notes: node.notes || "", raw_content: node.raw_content || "" });
   const [saving, setSaving] = useState(false);
@@ -61,11 +70,20 @@ function NodePanel({ node, nodes, onClose, onDelete, onUpdate, onConnect }) {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 24 }}
-      className="absolute top-4 right-4 w-96 rounded-2xl border border-[#DDD9D3] shadow-xl z-30 overflow-hidden bg-white">
+    <motion.div
+      initial={{ opacity: 0, y: isMobile ? 40 : 0, x: isMobile ? 0 : 24 }}
+      animate={{ opacity: 1, y: 0, x: 0 }}
+      exit={{ opacity: 0, y: isMobile ? 40 : 0, x: isMobile ? 0 : 24 }}
+      className={
+        isMobile
+          ? "fixed inset-x-0 bottom-0 z-40 max-h-[78vh] rounded-t-2xl border border-[#DDD9D3] shadow-2xl overflow-hidden bg-white"
+          : "absolute top-4 right-4 w-full max-w-sm sm:max-w-md rounded-2xl border border-[#DDD9D3] shadow-xl z-30 overflow-hidden bg-white"
+      }
+    >
       {/* Header */}
-      <div className="px-4 py-3 flex items-center gap-3 border-b border-[#E8E6E1]"
+      <div className="relative px-4 py-3 flex items-center gap-3 border-b border-[#E8E6E1]"
         style={{ borderLeft: `3px solid ${cfg.color}` }}>
+        {isMobile && <div className="w-10 h-1 rounded-full bg-[#DDD9D3] absolute top-2 left-1/2 -translate-x-1/2" />}
         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cfg.color }} />
         <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: cfg.color }}>{cfg.label}</span>
         <div className="ml-auto flex items-center gap-1">
@@ -81,7 +99,7 @@ function NodePanel({ node, nodes, onClose, onDelete, onUpdate, onConnect }) {
         </div>
       </div>
 
-      <div className="p-4 space-y-3 max-h-[80vh] overflow-y-auto">
+      <div className="p-4 space-y-3 max-h-[calc(78vh-3.5rem)] sm:max-h-[80vh] overflow-y-auto">
         {editing ? (
           <div className="space-y-2.5">
             <input value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
@@ -218,72 +236,113 @@ function AddNodeModal({ open, onClose, onAdd, parentNode }) {
 }
 
 // ── Canvas Graph ───────────────────────────────────────────────────────────
-function GraphCanvas({ nodes, filter, onNodeClick, onNodeDblClick, hoveredNode, setHoveredNode, newNodeId }) {
+function GraphCanvas({ nodes, filter, onNodeClick, onNodeDblClick, onNodeMove, hoveredNode, setHoveredNode, newNodeId, isMobile }) {
   const canvasRef = useRef(null);
+  const wrapRef = useRef(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const isDraggingNode = useRef(null);
-  const isDraggingCanvas = useRef(false);
-  const lastMouse = useRef({ x: 0, y: 0 });
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const dragNode = useRef(null);
+  const dragCanvas = useRef(false);
+  const dragMoved = useRef(false);
+  const lastPointer = useRef({ x: 0, y: 0 });
+  const pinchStart = useRef(null);
   const nodePositions = useRef({});
   const animFrame = useRef(null);
   const birthNodes = useRef(new Set());
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
 
   const filtered = filter === "todos" ? nodes : nodes.filter(n => n.type === filter);
 
-  // Birth animation tracking
   useEffect(() => {
     if (newNodeId) birthNodes.current.add(newNodeId);
-    setTimeout(() => birthNodes.current.delete(newNodeId), 1200);
+    const t = setTimeout(() => birthNodes.current.delete(newNodeId), 1200);
+    return () => clearTimeout(t);
   }, [newNodeId]);
 
-  // Sync positions
   useEffect(() => {
     nodes.forEach(n => {
       if (!nodePositions.current[n.id]) {
-        nodePositions.current[n.id] = { x: n.x || 400, y: n.y || 300 };
+        nodePositions.current[n.id] = { x: n.x ?? 0, y: n.y ?? 0 };
       }
+    });
+    Object.keys(nodePositions.current).forEach((id) => {
+      if (!nodes.find((n) => n.id === id)) delete nodePositions.current[id];
     });
   }, [nodes]);
 
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setSize({ w: width, h: height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const screenToWorld = useCallback((sx, sy) => {
+    const w = size.w || 1;
+    const h = size.h || 1;
+    return {
+      x: (sx - w / 2 - pan.x) / zoom,
+      y: (sy - h / 2 - pan.y) / zoom,
+    };
+  }, [pan, size, zoom]);
+
+  const getNodeAt = useCallback((sx, sy) => {
+    const { x: cx, y: cy } = screenToWorld(sx, sy);
+    return filtered.find(n => {
+      const pos = nodePositions.current[n.id];
+      if (!pos) return false;
+      const r = 6 + Math.min((n.connections || []).length * 2, 10);
+      return Math.hypot(pos.x - cx, pos.y - cy) < Math.max(r * 2.2, 14);
+    });
+  }, [filtered, screenToWorld]);
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !size.w || !size.h) return;
     const ctx = canvas.getContext("2d");
-    const w = canvas.width, h = canvas.height;
+    const w = size.w;
+    const h = size.h;
+
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
     ctx.save();
     ctx.translate(pan.x + w / 2, pan.y + h / 2);
     ctx.scale(zoom, zoom);
 
-    const visibleNodes = filtered;
     const now = Date.now();
 
-    // Draw edges
-    visibleNodes.forEach(node => {
+    filtered.forEach(node => {
       const pos = nodePositions.current[node.id];
       if (!pos) return;
       (node.connections || []).forEach(cid => {
-        const target = visibleNodes.find(n => n.id === cid);
         const tpos = nodePositions.current[cid];
-        if (!target || !tpos) return;
+        if (!tpos || !filtered.find(n => n.id === cid)) return;
 
         const isHoveredEdge = hoveredNode === node.id || hoveredNode === cid;
+        const { ox, oy } = edgeControlOffset(node.id, cid);
+        const mx = (pos.x + tpos.x) / 2 + ox;
+        const my = (pos.y + tpos.y) / 2 + oy;
+
         ctx.beginPath();
         ctx.moveTo(pos.x, pos.y);
-        // Curved line
-        const mx = (pos.x + tpos.x) / 2 + (Math.random() > 0.5 ? 20 : -20);
-        const my = (pos.y + tpos.y) / 2 + (Math.random() > 0.5 ? 20 : -20);
         ctx.quadraticCurveTo(mx, my, tpos.x, tpos.y);
-        ctx.strokeStyle = isHoveredEdge ? "rgba(139,92,246,0.6)" : "rgba(100,116,139,0.18)";
-        ctx.lineWidth = isHoveredEdge ? 1.5 : 0.8;
+        ctx.strokeStyle = isHoveredEdge ? "rgba(139,92,246,0.65)" : "rgba(100,116,139,0.2)";
+        ctx.lineWidth = (isHoveredEdge ? 1.6 : 1) / zoom;
         ctx.stroke();
       });
     });
 
-    // Draw nodes
-    visibleNodes.forEach(node => {
+    filtered.forEach(node => {
       const pos = nodePositions.current[node.id];
       if (!pos) return;
       const cfg = NODE_TYPES[node.type] || NODE_TYPES.outro;
@@ -291,145 +350,204 @@ function GraphCanvas({ nodes, filter, onNodeClick, onNodeDblClick, hoveredNode, 
       const isBirth = birthNodes.current.has(node.id);
       const connCount = (node.connections || []).length;
       const r = 6 + Math.min(connCount * 2, 10);
-      const scale = isBirth ? (1 + Math.sin((now % 1200) / 1200 * Math.PI) * 0.5) : (isHovered ? 1.4 : 1);
+      const scale = isBirth ? (1 + Math.sin((now % 1200) / 1200 * Math.PI) * 0.45) : (isHovered ? 1.35 : 1);
+      const labelZoom = Math.max(zoom, 0.45);
 
-      // Glow
       const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, r * scale * 3);
-      gradient.addColorStop(0, cfg.color + "60");
+      gradient.addColorStop(0, cfg.color + "55");
       gradient.addColorStop(1, "transparent");
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, r * scale * 3, 0, Math.PI * 2);
       ctx.fillStyle = gradient;
       ctx.fill();
 
-      // Node circle
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, r * scale, 0, Math.PI * 2);
       ctx.fillStyle = isHovered ? cfg.color : cfg.color + "cc";
-      if (isHovered || isBirth) {
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = cfg.color;
-      } else {
-        ctx.shadowBlur = 6;
-        ctx.shadowColor = cfg.color + "80";
-      }
+      ctx.shadowBlur = isHovered || isBirth ? 16 : 5;
+      ctx.shadowColor = cfg.color + "90";
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Label
-      if (zoom > 0.5) {
-        ctx.font = `${isHovered ? "600 " : ""}${Math.max(10, 11 / zoom)}px Inter, sans-serif`;
-        ctx.fillStyle = isHovered ? "#1F1F1F" : "rgba(50,50,60,0.75)";
+      if (labelZoom > 0.35) {
+        const fontSize = Math.max(10, Math.min(13, 12 / labelZoom));
+        const maxLen = isMobile ? 14 : 18;
+        const label = node.label.length > maxLen ? `${node.label.slice(0, maxLen)}…` : node.label;
+        ctx.font = `${isHovered ? "600 " : ""}${fontSize}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = isHovered ? "#1F1F1F" : "rgba(50,50,60,0.8)";
         ctx.textAlign = "center";
-        ctx.fillText(node.label.length > 18 ? node.label.slice(0, 18) + "…" : node.label, pos.x, pos.y + r * scale + 14 / zoom);
+        ctx.fillText(label, pos.x, pos.y + r * scale + fontSize + 2);
       }
     });
 
     ctx.restore();
     animFrame.current = requestAnimationFrame(draw);
-  }, [filtered, hoveredNode, pan, zoom]);
+  }, [dpr, filtered, hoveredNode, isMobile, pan, size, zoom]);
 
   useEffect(() => {
     animFrame.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animFrame.current);
   }, [draw]);
 
-  // Resize
-  useEffect(() => {
-    const resize = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.width = canvas.parentElement.clientWidth;
-      canvas.height = canvas.parentElement.clientHeight;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
-
-  const getNodeAt = (mx, my) => {
-    const canvas = canvasRef.current;
-    const cx = (mx - canvas.width / 2 - pan.x) / zoom;
-    const cy = (my - canvas.height / 2 - pan.y) / zoom;
-    return filtered.find(n => {
-      const pos = nodePositions.current[n.id];
-      if (!pos) return false;
-      const r = 6 + Math.min((n.connections || []).length * 2, 10);
-      return Math.hypot(pos.x - cx, pos.y - cy) < r * 2.5;
-    });
+  const getPointerPos = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
 
-  const onMouseDown = (e) => {
-    const node = getNodeAt(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
-    if (node) { isDraggingNode.current = node; }
-    else { isDraggingCanvas.current = true; }
-    lastMouse.current = { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY };
-  };
-
-  const onMouseMove = (e) => {
-    const mx = e.nativeEvent.offsetX, my = e.nativeEvent.offsetY;
-    if (isDraggingNode.current) {
-      const dx = (mx - lastMouse.current.x) / zoom;
-      const dy = (my - lastMouse.current.y) / zoom;
-      const id = isDraggingNode.current.id;
-      nodePositions.current[id] = { x: nodePositions.current[id].x + dx, y: nodePositions.current[id].y + dy };
-    } else if (isDraggingCanvas.current) {
-      setPan(p => ({ x: p.x + mx - lastMouse.current.x, y: p.y + my - lastMouse.current.y }));
+  const onPointerDown = (e) => {
+    if (e.pointerType === 'touch' && e.isPrimary === false) return;
+    const { x, y } = getPointerPos(e);
+    const node = getNodeAt(x, y);
+    dragMoved.current = false;
+    if (node) {
+      dragNode.current = node;
+      canvasRef.current.setPointerCapture(e.pointerId);
     } else {
-      const node = getNodeAt(mx, my);
+      dragCanvas.current = true;
+      canvasRef.current.setPointerCapture(e.pointerId);
+    }
+    lastPointer.current = { x, y };
+  };
+
+  const onPointerMove = (e) => {
+    const { x, y } = getPointerPos(e);
+
+    if (dragNode.current) {
+      const dx = (x - lastPointer.current.x) / zoom;
+      const dy = (y - lastPointer.current.y) / zoom;
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) dragMoved.current = true;
+      const id = dragNode.current.id;
+      nodePositions.current[id] = {
+        x: nodePositions.current[id].x + dx,
+        y: nodePositions.current[id].y + dy,
+      };
+    } else if (dragCanvas.current) {
+      if (Math.hypot(x - lastPointer.current.x, y - lastPointer.current.y) > 2) dragMoved.current = true;
+      setPan(p => ({ x: p.x + x - lastPointer.current.x, y: p.y + y - lastPointer.current.y }));
+    } else {
+      const node = getNodeAt(x, y);
       setHoveredNode(node ? node.id : null);
     }
-    lastMouse.current = { x: mx, y: my };
+    lastPointer.current = { x, y };
   };
 
-  const onMouseUp = async (e) => {
-    if (isDraggingNode.current && Math.hypot(e.nativeEvent.offsetX - lastMouse.current.x, e.nativeEvent.offsetY - lastMouse.current.y) < 4) {
-      // it was a click
+  const onPointerUp = async (e) => {
+    const { x, y } = getPointerPos(e);
+    if (dragNode.current && dragMoved.current) {
+      const id = dragNode.current.id;
+      const pos = nodePositions.current[id];
+      onNodeMove?.(id, pos.x, pos.y);
+    } else if (!dragMoved.current) {
+      const node = getNodeAt(x, y);
+      if (node) onNodeClick(node);
     }
-    isDraggingNode.current = null;
-    isDraggingCanvas.current = false;
+    dragNode.current = null;
+    dragCanvas.current = false;
+    try { canvasRef.current?.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
   };
 
-  const onClick = (e) => {
-    const node = getNodeAt(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
-    if (node) onNodeClick(node);
-  };
-
-  const onDblClick = (e) => {
-    const node = getNodeAt(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+  const onDoubleClick = (e) => {
+    const { x, y } = getPointerPos(e);
+    const node = getNodeAt(x, y);
     onNodeDblClick(node || null);
   };
 
-  const onWheel = (e) => {
-    e.preventDefault();
-    setZoom(z => Math.max(0.2, Math.min(3, z - e.deltaY * 0.001)));
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onWheel = (e) => {
+      e.preventDefault();
+      const delta = e.deltaY * (e.ctrlKey ? 0.004 : 0.0012);
+      setZoom(z => Math.max(0.25, Math.min(3, z - delta)));
+    };
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', onWheel);
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const onTouchStart = (e) => {
+      if (e.touches.length === 2) {
+        const [a, b] = e.touches;
+        pinchStart.current = {
+          distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+          zoom,
+        };
+      }
+    };
+
+    const onTouchMove = (e) => {
+      if (e.touches.length === 2 && pinchStart.current) {
+        e.preventDefault();
+        const [a, b] = e.touches;
+        const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+        const ratio = distance / pinchStart.current.distance;
+        setZoom(Math.max(0.25, Math.min(3, pinchStart.current.zoom * ratio)));
+      }
+    };
+
+    const onTouchEnd = () => { pinchStart.current = null; };
+
+    canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd);
+    return () => {
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [zoom]);
+
+  const fitView = () => {
+    if (!filtered.length) {
+      setPan({ x: 0, y: 0 });
+      setZoom(1);
+      return;
+    }
+    const xs = filtered.map(n => nodePositions.current[n.id]?.x ?? 0);
+    const ys = filtered.map(n => nodePositions.current[n.id]?.y ?? 0);
+    const minX = Math.min(...xs) - 80;
+    const maxX = Math.max(...xs) + 80;
+    const minY = Math.min(...ys) - 80;
+    const maxY = Math.max(...ys) + 80;
+    const bw = maxX - minX;
+    const bh = maxY - minY;
+    const padding = isMobile ? 48 : 64;
+    const scale = Math.min((size.w - padding) / bw, (size.h - padding) / bh, 1.5);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    setZoom(Math.max(0.35, Math.min(scale, 1.2)));
+    setPan({ x: -cx * scale, y: -cy * scale });
   };
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
+    <div ref={wrapRef} className="absolute inset-0 overflow-hidden touch-none">
       <canvas
         ref={canvasRef}
-        className="w-full h-full cursor-grab active:cursor-grabbing"
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onClick={onClick}
-        onDoubleClick={onDblClick}
-        onWheel={onWheel}
+        className="w-full h-full cursor-grab active:cursor-grabbing touch-none"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onDoubleClick={onDoubleClick}
         style={{ display: "block" }}
       />
-      {/* Zoom controls */}
-      <div className="absolute bottom-6 right-6 flex flex-col gap-2">
-        <button onClick={() => setZoom(z => Math.min(3, z + 0.2))}
-          className="w-9 h-9 rounded-xl bg-white border border-[#DDD9D3] flex items-center justify-center text-[#6E6E73] hover:text-[#1F1F1F] hover:bg-[#F1F1EF] shadow-sm transition-all">
+      <div className={`absolute flex flex-col gap-2 z-10 ${isMobile ? 'bottom-20 right-3' : 'bottom-6 right-6'}`}>
+        <button type="button" onClick={() => setZoom(z => Math.min(3, z + 0.2))}
+          className="w-9 h-9 rounded-xl bg-white/95 border border-[#DDD9D3] flex items-center justify-center text-[#6E6E73] hover:text-[#1F1F1F] hover:bg-[#F1F1EF] shadow-sm transition-all"
+          aria-label="Aumentar zoom">
           <ZoomIn className="w-4 h-4" />
         </button>
-        <button onClick={() => setZoom(z => Math.max(0.2, z - 0.2))}
-          className="w-9 h-9 rounded-xl bg-white border border-[#DDD9D3] flex items-center justify-center text-[#6E6E73] hover:text-[#1F1F1F] hover:bg-[#F1F1EF] shadow-sm transition-all">
+        <button type="button" onClick={() => setZoom(z => Math.max(0.25, z - 0.2))}
+          className="w-9 h-9 rounded-xl bg-white/95 border border-[#DDD9D3] flex items-center justify-center text-[#6E6E73] hover:text-[#1F1F1F] hover:bg-[#F1F1EF] shadow-sm transition-all"
+          aria-label="Diminuir zoom">
           <ZoomOut className="w-4 h-4" />
         </button>
-        <button onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); }}
-          className="w-9 h-9 rounded-xl bg-white border border-[#DDD9D3] flex items-center justify-center text-[#6E6E73] hover:text-[#1F1F1F] hover:bg-[#F1F1EF] shadow-sm transition-all">
+        <button type="button" onClick={fitView}
+          className="w-9 h-9 rounded-xl bg-white/95 border border-[#DDD9D3] flex items-center justify-center text-[#6E6E73] hover:text-[#1F1F1F] hover:bg-[#F1F1EF] shadow-sm transition-all"
+          aria-label="Centralizar mapa">
           <Maximize2 className="w-4 h-4" />
         </button>
       </div>
@@ -439,6 +557,7 @@ function GraphCanvas({ nodes, filter, onNodeClick, onNodeDblClick, hoveredNode, 
 
 // ── Main Page ──────────────────────────────────────────────────────────────
 export default function NeuralMap() {
+  const isMobile = useIsMobile();
   const [nodes, setNodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -447,6 +566,7 @@ export default function NeuralMap() {
   const [hoveredNode, setHoveredNode] = useState(null);
   const [filter, setFilter] = useState("todos");
   const [newNodeId, setNewNodeId] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -517,6 +637,12 @@ export default function NeuralMap() {
     toast.success("Nó atualizado!");
   };
 
+  const handleNodeMove = async (id, x, y) => {
+    const updated = await NeuralNode.update(id, { x, y });
+    setNodes(prev => prev.map(n => n.id === id ? updated : n));
+    if (selectedNode?.id === id) setSelectedNode(updated);
+  };
+
   const handleNodeDblClick = (node) => {
     setParentForAdd(node);
     setAddModal(true);
@@ -531,38 +657,52 @@ export default function NeuralMap() {
       </div>
 
       {/* Top Bar */}
-      <div className="absolute top-0 left-0 right-0 z-20 px-6 py-4 flex items-center gap-4"
-        style={{ background: "linear-gradient(to bottom, #F0EEF5f0, transparent)" }}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}>
-            <Brain className="w-4 h-4 text-white" />
+      <div className="absolute top-0 left-0 right-0 z-20 px-3 sm:px-6 py-3 sm:py-4"
+        style={{ background: "linear-gradient(to bottom, #F0EEF5f5, transparent)" }}>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}>
+              <Brain className="w-4 h-4 text-white" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-sm font-bold text-[#1F1F1F] truncate">Mapa Neural</h1>
+              <p className="text-xs text-[#A0A0A6]">{nodes.length} nó{nodes.length !== 1 ? "s" : ""} · {nodes.reduce((a, n) => a + (n.connections || []).length, 0) / 2 | 0} conexões</p>
+            </div>
+            {isMobile && (
+              <button
+                type="button"
+                onClick={() => setShowFilters(v => !v)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-[#DDD9D3] bg-white/80 text-[#6E6E73] shrink-0"
+              >
+                <Filter className="w-3.5 h-3.5" />
+                Filtros
+              </button>
+            )}
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => { setParentForAdd(null); setAddModal(true); }}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-white text-sm font-semibold shrink-0"
+              style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
+            >
+              <Plus className="w-4 h-4" />
+              <span>{isMobile ? 'Novo' : 'Novo Nó'}</span>
+            </motion.button>
           </div>
-          <div>
-            <h1 className="text-sm font-bold text-[#1F1F1F]">Mapa Neural</h1>
-            <p className="text-xs text-[#A0A0A6]">{nodes.length} nó{nodes.length !== 1 ? "s" : ""} · {nodes.reduce((a, n) => a + (n.connections || []).length, 0) / 2 | 0} conexões</p>
-          </div>
-        </div>
 
-        {/* Filters */}
-        <div className="flex gap-1.5 ml-4 flex-wrap">
-          {FILTERS.map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border bg-white/70 backdrop-blur-sm"
-              style={filter === f
-                ? { borderColor: f === "todos" ? "#a855f7" : (NODE_TYPES[f]?.color || "#a855f7"), color: f === "todos" ? "#7c3aed" : (NODE_TYPES[f]?.color || "#a855f7"), background: f === "todos" ? "#f3e8ff" : (NODE_TYPES[f]?.color + "15" || "#f3e8ff") }
-                : { borderColor: "#DDD9D3", color: "#6E6E73" }}>
-              {f === "todos" ? "Todos" : NODE_TYPES[f]?.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="ml-auto">
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            onClick={() => { setParentForAdd(null); setAddModal(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}>
-            <Plus className="w-4 h-4" /> Novo Nó
-          </motion.button>
+          {(!isMobile || showFilters) && (
+            <div className={`flex gap-1.5 sm:ml-2 ${isMobile ? 'overflow-x-auto pb-1 scrollbar-hide' : 'flex-wrap flex-1'}`}>
+              {FILTERS.map(f => (
+                <button key={f} type="button" onClick={() => setFilter(f)}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border bg-white/70 backdrop-blur-sm whitespace-nowrap shrink-0"
+                  style={filter === f
+                    ? { borderColor: f === "todos" ? "#a855f7" : (NODE_TYPES[f]?.color || "#a855f7"), color: f === "todos" ? "#7c3aed" : (NODE_TYPES[f]?.color || "#a855f7"), background: f === "todos" ? "#f3e8ff" : (NODE_TYPES[f]?.color + "15" || "#f3e8ff") }
+                    : { borderColor: "#DDD9D3", color: "#6E6E73" }}>
+                  {f === "todos" ? "Todos" : NODE_TYPES[f]?.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -586,15 +726,17 @@ export default function NeuralMap() {
           filter={filter}
           onNodeClick={node => setSelectedNode(node)}
           onNodeDblClick={handleNodeDblClick}
+          onNodeMove={handleNodeMove}
           hoveredNode={hoveredNode}
           setHoveredNode={setHoveredNode}
           newNodeId={newNodeId}
+          isMobile={isMobile}
         />
       )}
 
       {/* Hint */}
-      {!loading && nodes.length > 0 && (
-        <div className="absolute bottom-6 left-6 text-xs text-[#A0A0A6] space-y-1 pointer-events-none bg-white/70 backdrop-blur-sm px-3 py-2 rounded-xl border border-[#DDD9D3]">
+      {!loading && nodes.length > 0 && !isMobile && (
+        <div className="absolute bottom-6 left-6 text-xs text-[#A0A0A6] space-y-1 pointer-events-none bg-white/70 backdrop-blur-sm px-3 py-2 rounded-xl border border-[#DDD9D3] max-w-xs">
           <p>Arraste para mover · Scroll para zoom</p>
           <p>Duplo clique num nó para conectar novo</p>
         </div>
@@ -602,14 +744,23 @@ export default function NeuralMap() {
 
       {/* Node detail panel */}
       <AnimatePresence>
+        {selectedNode && isMobile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-30 bg-black/40"
+            onClick={() => setSelectedNode(null)}
+          />
+        )}
         {selectedNode && (
           <NodePanel
             node={selectedNode}
             nodes={nodes}
+            isMobile={isMobile}
             onClose={() => setSelectedNode(null)}
             onDelete={handleDeleteNode}
             onUpdate={handleUpdateNode}
-            onConnect={() => { setParentForAdd(selectedNode); setAddModal(true); }}
           />
         )}
       </AnimatePresence>

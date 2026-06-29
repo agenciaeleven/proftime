@@ -1,6 +1,7 @@
 import { db } from '@/api/client'
 import { asText } from '@/lib/ai'
 import type { ChatMessage } from '@/types'
+import KnowledgeBasePanel from '@/components/KnowledgeBasePanel'
 
 import { useState, useRef, useEffect } from 'react'
 import { motion } from "framer-motion";
@@ -40,6 +41,7 @@ export default function AIAssistant() {
     const response = await db.integrations.Core.InvokeLLM({
       prompt: `${SYSTEM_PROMPT}\n\nHistórico:\n${history}\n\nUsuário: ${msg}\n\nAssistente:`,
       model: 'gemini_3_flash',
+      use_knowledge_base: true,
     })
     setMessages((prev) => [...prev, { role: 'assistant', content: asText(response) }])
     setIsTyping(false);
@@ -66,7 +68,11 @@ export default function AIAssistant() {
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 lg:px-10 py-6">
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-6">
+          <div className="lg:w-72 shrink-0 order-2 lg:order-1">
+            <KnowledgeBasePanel />
+          </div>
+          <div className="flex-1 space-y-4 order-1 lg:order-2 min-w-0">
           {messages.length === 1 && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 gap-2 mb-2">
               {SUGGESTIONS.map(s => (
@@ -112,6 +118,7 @@ export default function AIAssistant() {
               </div>
             </motion.div>
           )}
+        </div>
         </div>
       </div>
 

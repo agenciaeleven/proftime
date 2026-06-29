@@ -2,6 +2,7 @@ import { db } from '@/api/client'
 import type { User } from '@/types'
 
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { User as UserIcon, Camera, Save, Loader2, Mail, Phone, MapPin, BookOpen, Award, Edit3, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -127,6 +128,14 @@ export default function ProfilePanel({ open, onClose }: { open: boolean; onClose
                   placeholder="Sua trajetória e metodologia..."
                   className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl px-3 py-2 text-xs text-slate-200 placeholder:text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500/40 resize-none" />
               </div>
+
+              <Link
+                to="/profile"
+                onClick={onClose}
+                className="block text-center text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Abrir perfil completo →
+              </Link>
 
               <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} onClick={handleSave} disabled={saving}
                 className="w-full h-9 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
