@@ -8,7 +8,7 @@ import { AuthProvider } from '@/lib/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
-import InternalRegister from './pages/InternalRegister'
+import Cadastro from './pages/Cadastro'
 import Profile from './pages/Profile'
 import Dashboard from './pages/Dashboard'
 import LessonCreator from './pages/LessonCreator'
@@ -35,7 +35,8 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/interno/cadastro" element={<InternalRegister />} />
+            <Route path="/cadastro" element={<Cadastro />} />
+            <Route path="/interno/cadastro" element={<Cadastro />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
                 <Route path="/" element={<Dashboard />} />

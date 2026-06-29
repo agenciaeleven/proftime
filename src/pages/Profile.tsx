@@ -16,10 +16,9 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/AuthContext'
-import { PAGE_BG, TEXT } from '@/lib/pageStyles'
+import { PAGE_BG_CLASS, CARD_CLASS, INPUT_CLASS } from '@/lib/pageStyles'
 
-const inputClass =
-  'w-full h-11 bg-[#FAFAF8] border border-[#DDD9D3] rounded-xl pl-10 pr-3 text-sm text-[#1F1F1F] placeholder:text-[#A0A0A6] focus:outline-none focus:ring-2 focus:ring-[#4D7CFE]/25'
+const fieldInputClass = `${INPUT_CLASS} pl-10`
 
 export default function Profile() {
   const { checkAppState } = useAuth()
@@ -84,27 +83,24 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-full" style={{ background: PAGE_BG }}>
-        <Loader2 className="w-6 h-6 text-[#A0A0A6] animate-spin" />
+      <div className={`flex items-center justify-center min-h-full ${PAGE_BG_CLASS}`}>
+        <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-full" style={{ background: PAGE_BG }}>
+    <div className={`min-h-full ${PAGE_BG_CLASS}`}>
       <div className="px-6 lg:px-10 py-8 max-w-3xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div
-            className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-4"
-            style={{ background: '#F1F5FF', border: '1px solid rgba(77,124,254,0.2)' }}
-          >
-            <UserIcon className="w-3.5 h-3.5 text-[#4D7CFE]" />
-            <span className="text-xs text-[#4D7CFE] font-medium">Central do Professor</span>
+          <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-4 bg-primary/10 border border-primary/20">
+            <UserIcon className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs text-primary font-medium">Central do Professor</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight" style={{ color: TEXT.heading }}>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Meu Perfil
           </h1>
-          <p className="text-sm mt-1.5" style={{ color: TEXT.body }}>
+          <p className="text-sm mt-1.5 text-muted-foreground">
             Gerencie suas informações pessoais e profissionais.
           </p>
         </motion.div>
@@ -114,12 +110,11 @@ export default function Profile() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="rounded-2xl border border-[#DDD9D3] p-6 flex items-center gap-6 bg-white shadow-sm"
+            className={`rounded-2xl p-6 flex items-center gap-6 ${CARD_CLASS}`}
           >
             <div className="relative group shrink-0">
               <div
-                className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-[#DDD9D3] flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #4D7CFE, #a78bfa)' }}
+                className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-border flex items-center justify-center bg-gradient-to-br from-primary to-chart-3"
               >
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
@@ -142,12 +137,12 @@ export default function Profile() {
               </label>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#1F1F1F]">{user.full_name || 'Professor'}</h2>
-              <p className="text-sm text-[#6E6E73] flex items-center gap-1.5 mt-1">
+              <h2 className="text-xl font-bold text-foreground">{user.full_name || 'Professor'}</h2>
+              <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
                 <Mail className="w-3.5 h-3.5" />
                 {user.email}
               </p>
-              <p className="text-xs text-[#A0A0A6] mt-2">Clique na foto para alterar</p>
+              <p className="text-xs text-muted-foreground mt-2">Clique na foto para alterar</p>
             </div>
           </motion.div>
 
@@ -155,10 +150,10 @@ export default function Profile() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="rounded-2xl border border-[#DDD9D3] p-6 space-y-4 bg-white shadow-sm"
+            className={`rounded-2xl p-6 space-y-4 ${CARD_CLASS}`}
           >
-            <h3 className="text-sm font-semibold text-[#1F1F1F] flex items-center gap-2">
-              <Edit3 className="w-4 h-4 text-[#4D7CFE]" />
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Edit3 className="w-4 h-4 text-primary" />
               Informações pessoais
             </h3>
 
@@ -170,16 +165,16 @@ export default function Profile() {
                 { key: 'experience' as const, label: 'Anos de experiência', placeholder: 'Ex: 10 anos', icon: Award },
               ].map((f) => (
                 <div key={f.key}>
-                  <label className="text-xs font-semibold text-[#A0A0A6] uppercase tracking-wider mb-1.5 block">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                     {f.label}
                   </label>
                   <div className="relative">
-                    <f.icon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#A0A0A6]" />
+                    <f.icon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                     <input
                       value={form[f.key]}
                       onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
                       placeholder={f.placeholder}
-                      className={inputClass}
+                      className={fieldInputClass}
                     />
                   </div>
                 </div>
@@ -191,12 +186,12 @@ export default function Profile() {
                 Disciplinas que leciona
               </label>
               <div className="relative">
-                <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#A0A0A6]" />
+                <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <input
                   value={form.subjects}
                   onChange={(e) => setForm((p) => ({ ...p, subjects: e.target.value }))}
                   placeholder="Ex: Matemática, Física, Cálculo..."
-                  className={inputClass}
+                  className={fieldInputClass}
                 />
               </div>
             </div>
@@ -210,7 +205,7 @@ export default function Profile() {
                 value={form.bio}
                 onChange={(e) => setForm((p) => ({ ...p, bio: e.target.value }))}
                 placeholder="Conte um pouco sobre você, sua trajetória e metodologia de ensino..."
-                className="w-full bg-[#FAFAF8] border border-[#DDD9D3] rounded-xl px-3 py-2.5 text-sm text-[#1F1F1F] placeholder:text-[#A0A0A6] focus:outline-none focus:ring-2 focus:ring-[#4D7CFE]/25 resize-none"
+                className="w-full bg-secondary border border-input rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 resize-none"
               />
             </div>
           </motion.div>
@@ -220,8 +215,7 @@ export default function Profile() {
             whileTap={{ scale: 0.98 }}
             onClick={() => void handleSave()}
             disabled={saving}
-            className="w-full h-12 rounded-xl text-white font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
-            style={{ background: '#4D7CFE' }}
+            className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Salvar perfil

@@ -9,6 +9,7 @@ import {
   ChevronLeft, ChevronRight, Search, Bell, Settings, Menu,
   Zap, PenLine, Brain, GraduationCap, Briefcase, ShoppingBag, TrendingUp
 } from "lucide-react";
+import ThemeToggle from './ThemeToggle'
 import NotificationsPanel from "./NotificationsPanel";
 import ProfilePanel from "./ProfilePanel";
 import SettingsPanel from "./SettingsPanel";
@@ -217,6 +218,7 @@ export default function Layout() {
             </div>
 
             <div className="flex items-center gap-2 ml-auto relative">
+              <ThemeToggle />
               <div className="relative">
                 <button onClick={() => { setNotifOpen(o => !o); setSettingsOpen(false); }} className="relative w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors">
                   <Bell className="w-4 h-4" />

@@ -100,7 +100,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="min-h-full" style={{ background: "linear-gradient(135deg, #EDECEA 0%, #E9EAE6 45%, #EBE9ED 100%)" }}>
+    <div className="min-h-full bg-background">
       <div className="px-6 lg:px-10 py-7 max-w-[1400px] mx-auto space-y-6">
 
         {/* ── HERO ─────────────────────────────────────────────────────── */}
@@ -108,8 +108,8 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="relative overflow-hidden rounded-3xl border border-[#DDD9D3]"
-          style={{ background: "linear-gradient(135deg, #FFFFFF 0%, #F8F7F5 100%)", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}
+          className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-sm"
+          style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}
         >
           {/* Soft orbs */}
           <div className="absolute top-0 left-1/4 w-80 h-80 rounded-full blur-3xl opacity-[0.08]" style={{ background: "#4D7CFE" }} />
